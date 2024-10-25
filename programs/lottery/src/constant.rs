@@ -1,0 +1,14 @@
+/// constants for seeds
+pub const GLOBAL_SETTING:&[u8] = b"GLOBAL_SETTING_SEED";
+pub const POOL_TOKEN_ACCOUNT:&[u8] = b"POOL_TOKEN_ACCOUNT_SEED";
+pub const WITHDRAW_TOKEN_ACCOUNT:&[u8] = b"WITHDRAW_TOKEN_ACCOUNT_SEED";
+pub const USER_TOKEN_ACCOUNT:&[u8] = b"USER_TOKEN_ACCOUNT_SEED";
+pub const LOTTERY_INFO:&[u8] = b"LOTTERY_INFO_SEED";
+pub const LOTTERY_PDAKEY_INFO:&[u8] = b"LOTTERY_PDAKEY_INFO";
+pub const USER_INFO:&[u8] = b"USER_INFO_SEED";
+pub const HISTORY_INFO:&[u8] = b"HISTORY_INFO_SEED";
+pub const WINNER_TICKER:&[u8] = b"WINNER_TICKER_SEED";
+pub const DEPOSITE_TICKER:&[u8] = b"DEPOSITE_TICKER_SEED";
+
+pub const MAX_ACCOUNT_SPACE: usize = 1000;
+pub const MAX_PLAYERS: usize = 300;
