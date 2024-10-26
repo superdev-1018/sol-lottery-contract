@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("57KXktzp1TaWRYq1k2Qx41rSwRcHQDKpLnxxEYmwv9JX");
+declare_id!("6mcti5AtPeQ368eSpEuaoqqkPpiMAYbzbmKTDwGD47Uc");
 
 pub mod constant;
 pub mod error;
@@ -20,7 +20,7 @@ pub mod lottery {
        initialize::init(ctx)
     }
 
-    pub fn create_lottery(ctx: Context<CreateLottery>, id:u8, time_frame_index:u8, time_frame:u64, ticket_price: u8, max_ticket:u64, dev_fee: u32, start_time: i64) -> Result<()> {
+    pub fn create_lottery(ctx: Context<CreateLottery>, id:u8, time_frame_index:u8, time_frame:u64, ticket_price: u64, max_ticket:u64, dev_fee: u32, start_time: i64) -> Result<()> {
       msg!("create lottery {}", time_frame_index);
       lottery::create(ctx, id, time_frame_index, time_frame, ticket_price, max_ticket, dev_fee, start_time)
     }
@@ -48,11 +48,6 @@ pub mod lottery {
     pub fn buy_ticket_with_referral(ctx: Context<BuyTicketWithReferral>, count: u8) -> Result<()> {
       msg!("buy ticket with referral user {}", "id");
       referral::buy_with_referral(ctx, count)
-    }
-
-    pub fn get_user_ticket(ctx: Context<GetUserTicket>) -> Result<bool> {
-      msg!("get user ticket {}", "id");
-      user::get_user_ticket_num(ctx)
     }
 
     pub fn join_lottery(ctx: Context<JoinLottery>, user_spot_index: u8) -> Result<()> {

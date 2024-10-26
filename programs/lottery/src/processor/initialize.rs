@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::token::Token;
 pub use crate::{account::*, constant::*, error::*};
 
 #[derive(Accounts)]
@@ -42,12 +42,6 @@ pub struct Initialize<'info> {
     )]
     pub deposite_ticker: Box<Account<'info, DepositeTicker>>,
 
-    // #[account(mut)]
-    // pub pool_token_account: Account<'info, TokenAccount>,
-
-    // #[account(mut)]
-    // pub withdraw_token_account: Account<'info, TokenAccount>,
-
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
@@ -70,8 +64,6 @@ pub fn init(ctx: Context<Initialize>) -> Result<()> {
 
     ctx.accounts.global_account.initializer = ctx.accounts.initializer.key();
     ctx.accounts.global_account.is_initialized = 1;
-    // ctx.accounts.global_account.pool_toke_account = ctx.accounts.pool_token_account.key();
-    // ctx.accounts.global_account.withdraw_token_account = ctx.accounts.withdraw_token_account.key();
     ctx.accounts.lottery_pdakey_info.count = 0;
     ctx.accounts.lottery_pdakey_info.rounds = [0;10];
     ctx.accounts.winner_ticker.winner = Pubkey::default();

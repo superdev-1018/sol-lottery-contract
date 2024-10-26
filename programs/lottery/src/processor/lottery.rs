@@ -1,9 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount};
+use anchor_spl::token::Token;
 pub use crate::{account::*, constant::*, error::*};
 use oorandom::Rand64;
 use std::collections::HashSet;
 use std::convert::TryInto;
+use anchor_lang::solana_program::system_instruction;
 
 #[derive(Accounts)]
 #[instruction(id: u8)]
@@ -33,11 +34,13 @@ pub struct EndLottery<'info> {
     #[account(mut)]
     pub lottery: Box<Account<'info, Lottery>>,
 
+    /// CHECK:this is unsafe
     #[account(mut)]
-    pub pool_token_account: Box<Account<'info, TokenAccount>>,
+    pub pool_token_account: AccountInfo<'info>,
 
+    /// CHECK:this is unsafe
     #[account(mut)]
-    pub tax_token_account: Box<Account<'info, TokenAccount>>,
+    pub tax_token_account: AccountInfo<'info>,
 
     #[account(mut)]
     pub winner_ticker: Box<Account<'info, WinnerTicker>>,
@@ -70,7 +73,7 @@ pub struct SetLotteryState<'info> {
 
 
 
-pub fn create(ctx: Context<CreateLottery>, id:u8, time_frame_index:u8, time_frame:u64, ticket_price: u8, max_ticket:u64, dev_fee: u32, start_time:i64) -> Result<()> {
+pub fn create(ctx: Context<CreateLottery>, id:u8, time_frame_index:u8, time_frame:u64, ticket_price: u64, max_ticket:u64, dev_fee: u32, start_time:i64) -> Result<()> {
     msg!("entrypoint of {}", "create");
     let lottery =&mut ctx.accounts.lottery;
     lottery.id = id;
@@ -143,24 +146,26 @@ pub fn endlottery(ctx: Context<EndLottery>) -> Result<()> {
     msg!("winner list {}, {}, {}", winner1, winner2, winner3);
     msg!("lottery winner {:?}",lottery.winner);
     // Calculate tax fee and update pool amount
-    let lottery_pool_amount = (lottery.ticket_price as u64) * (participants as u64) * 1_000_000_000u64;
+    let lottery_pool_amount = (lottery.ticket_price as u64) * (participants as u64);
     lottery.real_pool_amount = lottery_pool_amount ;
     let dev_fee = lottery.dev_fee;
     let tax_fee = lottery_pool_amount * (dev_fee as u64) / 100;
     // lottery.real_pool_amount -= tax_fee;
     msg!("tax fee amount is {}", tax_fee);
+
+    let ix = system_instruction::transfer(
+        ctx.accounts.pool_token_account.key, 
+        ctx.accounts.tax_token_account.key, 
+        tax_fee);
     
-    token::transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            token::Transfer {
-                from: ctx.accounts.pool_token_account.to_account_info(),
-                to: ctx.accounts.tax_token_account.to_account_info(),
-                authority: ctx.accounts.admin.to_account_info(),
-            },
-        ),
-        tax_fee,
+    msg!("Transferring {} lamports from {} to {}", tax_fee, ctx.accounts.pool_token_account.key, ctx.accounts.tax_token_account.key);
+
+    anchor_lang::solana_program::program::invoke(
+        &ix,
+        &[ctx.accounts.pool_token_account.clone(), ctx.accounts.tax_token_account.clone()],
     )?;
+
+
 
     let winner1_prize = (lottery_pool_amount - tax_fee)* 50/100 as u64;
     let winner2_prize = (lottery_pool_amount - tax_fee) * 30/100 as u64;
@@ -171,7 +176,7 @@ pub fn endlottery(ctx: Context<EndLottery>) -> Result<()> {
 
     let winner_ticker = &mut ctx.accounts.winner_ticker;
     winner_ticker.winner = winner1;
-    winner_ticker.prize = (lottery.real_pool_amount - tax_fee) * 50/100;
+    winner_ticker.prize = winner1_prize;
     winner_ticker.time_frame = lottery.time_frame;
 
     Ok(())
@@ -200,7 +205,7 @@ pub fn join_to_lottery(ctx: Context<JoinLottery>, user_spot_index:u8) -> Result<
     let transfer_amount = lottery.ticket_price as u64;
     lottery.participants.push(user.id);
     msg!("real pool amount in join lottery {}, transfer_amount: {}", lottery.real_pool_amount, transfer_amount);
-    lottery.real_pool_amount += transfer_amount * 1_000_000_000u64; 
+    lottery.real_pool_amount += transfer_amount; 
     msg!("this is real pool amount after plus transfer amount: {}",lottery.real_pool_amount);
     user.spot[user_spot_index as usize] -= 1;
 

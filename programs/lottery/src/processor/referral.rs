@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount, Transfer};
+use anchor_spl::token::Token;
+use anchor_lang::solana_program::system_instruction;
 pub use crate::error::*;
 pub use crate::account::*;
 pub use crate::constant::*;
@@ -22,11 +23,13 @@ pub struct BuyTicketWithReferral<'info> {
     #[account(mut)]
     pub global_account: Box<Account<'info, GlobalAccount>>,
 
+    /// CHECK:this is unsafe
     #[account(mut)]
-    pub pool_token_account: Box<Account<'info, TokenAccount>>,
+    pub pool_token_account: AccountInfo<'info>,
 
+    /// CHECK:this is unsafe
     #[account(mut)]
-    pub buyer_token_account: Box<Account<'info, TokenAccount>>,
+    pub buyer_token_account: AccountInfo<'info>,
 
     #[account(
         init_if_needed,
@@ -68,23 +71,25 @@ pub fn buy_with_referral(ctx: Context<BuyTicketWithReferral>, count:u8) -> Resul
     let lottery = &mut ctx.accounts.lottery;
     let buyer = &ctx.accounts.buyer;
     let user =&mut ctx.accounts.user;
-    let transfer_amount = (lottery.ticket_price as u64) * (count as u64) * 1_000_000_000u64; 
+    let transfer_amount = (lottery.ticket_price as u64) * (count as u64); 
 
     msg!("transfer token amount {}", transfer_amount);
     msg!("Buyer token account owner: {:?}", ctx.accounts.buyer_token_account.owner);
     msg!("Authority for transfer: {:?}", ctx.accounts.buyer.key);
 
-    let transfer_instruction = Transfer {
-        from: ctx.accounts.buyer_token_account.to_account_info(),
-        to: ctx.accounts.pool_token_account.to_account_info(),
-        authority: ctx.accounts.buyer.to_account_info()
-    };
+    let ix = system_instruction::transfer(
+        ctx.accounts.pool_token_account.key, 
+        ctx.accounts.buyer_token_account.key, 
+        transfer_amount);
+    
+    msg!("Transferring {} lamports from {} to {}", transfer_amount, ctx.accounts.pool_token_account.key, ctx.accounts.buyer_token_account.key);
 
-    let cpi_program = ctx.accounts.token_program.to_account_info();
+    anchor_lang::solana_program::program::invoke(
+        &ix,
+        &[ctx.accounts.pool_token_account.clone(), ctx.accounts.buyer_token_account.clone()],
+    )?;
 
-    let _ = anchor_spl::token::transfer(CpiContext::new(cpi_program, transfer_instruction), transfer_amount)?;
-
-    lottery.real_pool_amount += (lottery.ticket_price as u64) * 1_000_000_000u64; 
+    lottery.real_pool_amount += lottery.ticket_price as u64; 
     user.id = buyer.key();
     let lottery_timeframe = lottery.time_frame;
 
@@ -97,7 +102,7 @@ pub fn buy_with_referral(ctx: Context<BuyTicketWithReferral>, count:u8) -> Resul
     deposite_ticker.depositer = buyer.key();
     deposite_ticker.time_frame = lottery.time_frame;
     deposite_ticker.spots = count;
-    deposite_ticker.amount = (lottery.ticket_price * count) as u64;
+    deposite_ticker.amount = lottery.ticket_price * (count as u64);
 
     let current_referrer = user.referrer;
 

@@ -23,7 +23,7 @@ pub struct User {
 pub struct Lottery{
     pub id: u8,
     pub time_frame: u64,
-    pub ticket_price: u8,
+    pub ticket_price: u64,
     pub max_ticket: u64,
     pub dev_fee: u32,
     pub start_time: i64,
