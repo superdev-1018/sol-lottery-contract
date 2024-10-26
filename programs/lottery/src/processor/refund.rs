@@ -44,6 +44,7 @@ pub fn refund_ticket_price(ctx: Context<ReFund>) -> Result<()> {
 
     lottery.state = 0;
     lottery.participants = [].to_vec();
+    lottery.winner = [Pubkey::default();3];
 
     Ok(())
 }
